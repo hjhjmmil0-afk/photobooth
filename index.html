@@ -4,73 +4,210 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>네컷 포토부스</title>
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#a9c6ff">
+<title>Say Cheese!</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@2.40.3/dist/galmuri.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --navy: #2f3a7a;
+    --blue: #6f9cf2;
+    --blue-soft: #a9c6ff;
+    --pink: #ff8cc0;
+    --pink-deep: #ff6fae;
+    --win: #fff8fc;
+    --pixel: "Galmuri11", "Apple SD Gothic Neo", monospace;
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; background: #141414; color: #fff;
-    font-family: -apple-system, "Apple SD Gothic Neo", sans-serif; overflow: hidden; user-select: none; -webkit-user-select: none; }
-  .screen { display: none; position: fixed; inset: 0; align-items: center; justify-content: center; flex-direction: column; gap: 28px; padding: 24px; }
+  html, body { height: 100%; overflow: hidden; user-select: none; -webkit-user-select: none; }
+  body {
+    font-family: var(--pixel); color: var(--navy);
+    background:
+      linear-gradient(rgba(255,255,255,.22) 2px, transparent 2px) 0 0 / 40px 40px,
+      linear-gradient(90deg, rgba(255,255,255,.22) 2px, transparent 2px) 0 0 / 40px 40px,
+      linear-gradient(180deg, #9fbfff 0%, #c9dbff 50%, #ffd6ea 100%);
+  }
+  button { font-family: inherit; }
+
+  /* ---------- 배경 장식 ---------- */
+  #deco { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  #deco > span { position: absolute; display: block; line-height: 0; }
+  .drift { animation: drift 9s ease-in-out infinite alternate; }
+  .drift.slow { animation-duration: 13s; }
+  @keyframes drift { from { transform: translateX(-14px); } to { transform: translateX(14px); } }
+  .twinkle { animation: twinkle 1.8s steps(2) infinite; }
+  .float { animation: float 3s ease-in-out infinite; }
+  .d1 { animation-delay: .6s; } .d2 { animation-delay: 1.2s; }
+  @keyframes twinkle { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+  /* ---------- 화면 공통 ---------- */
+  .screen { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 48px; z-index: 1;
+    align-items: center; justify-content: center; padding: 20px; }
   .screen.active { display: flex; }
 
-  /* 시작 화면 */
-  h1 { font-size: 64px; letter-spacing: -1px; }
-  .sub { color: #aaa; font-size: 22px; }
-  .label { font-size: 20px; color: #ccc; margin-bottom: -12px; }
-  .frames { display: flex; gap: 18px; }
-  .frame-btn { width: 72px; height: 72px; border-radius: 50%; border: 4px solid transparent; cursor: pointer; }
-  .frame-btn.selected { border-color: #ffcc00; transform: scale(1.1); }
-  input[type=text] { font-size: 24px; padding: 14px 20px; border-radius: 14px; border: none; width: 380px; text-align: center; }
-  .big-btn { font-size: 34px; font-weight: 700; padding: 26px 80px; border-radius: 999px; border: none;
-    background: #ffcc00; color: #141414; cursor: pointer; }
-  .big-btn:active { transform: scale(0.96); }
+  /* ---------- 레트로 창 ---------- */
+  .win { background: var(--win); border: 3px solid var(--navy); border-radius: 10px;
+    box-shadow: 8px 8px 0 rgba(47,58,122,.3); overflow: hidden; }
+  .titlebar { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 7px 10px 7px 12px; background: linear-gradient(90deg, #6f9cf2, #a3bdfb);
+    color: #fff; font-weight: 700; font-size: 15px; border-bottom: 3px solid var(--navy);
+    text-shadow: 1px 1px 0 rgba(47,58,122,.5); }
+  .titlebar.pink { background: linear-gradient(90deg, #ff8cc0, #ffb8d9); }
+  .titlebar .t { display: flex; align-items: center; gap: 7px; }
+  .tb-btns { display: flex; gap: 5px; }
+  .tb-btns i { width: 20px; height: 20px; background: #fff; border: 2px solid var(--navy); border-radius: 3px;
+    display: grid; place-items: center; font-style: normal; font-size: 11px; color: var(--navy); text-shadow: none; }
+  .win-body { padding: 22px 26px 26px;
+    background: radial-gradient(#ffe1ef 1.6px, transparent 1.8px) 0 0 / 18px 18px, var(--win); }
 
-  /* 촬영 화면 */
-  #shoot { padding: 0; gap: 0; }
+  /* ---------- 바탕화면 아이콘 ---------- */
+  .icons { position: fixed; top: 28px; display: flex; flex-direction: column; gap: 26px; z-index: 1; }
+  .icons.left { left: 26px; } .icons.right { right: 26px; }
+  .dicon { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .dicon span { line-height: 0; filter: drop-shadow(3px 3px 0 rgba(47,58,122,.25)); }
+  .dicon label { font-size: 11px; color: #fff; background: rgba(47,58,122,.55); padding: 2px 6px; border-radius: 4px; }
+
+  /* ---------- 시작 화면 ---------- */
+  .stage { position: relative; }
+  .main-win { width: min(540px, 92vw); }
+  .main-win .win-body { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .tag { font-size: 13px; font-weight: 700; color: var(--blue); letter-spacing: 3px; }
+  .logo { font-family: "Pacifico", cursive; font-weight: 400; font-size: 58px; line-height: 1.25;
+    color: var(--pink-deep); transform: rotate(-4deg); margin: 2px 0 4px;
+    text-shadow: 3px 0 0 #fff, -3px 0 0 #fff, 0 3px 0 #fff, 0 -3px 0 #fff,
+                 3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff,
+                 7px 7px 0 var(--blue); }
+  .hint { font-size: 13px; color: #8a90bd; margin-bottom: 14px; }
+
+  .opts { width: 100%; display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+  .opt { display: grid; grid-template-columns: 64px 1fr; align-items: center; gap: 10px; }
+  .opt-label { font-size: 12px; font-weight: 700; color: #fff; background: var(--blue);
+    border: 2px solid var(--navy); border-radius: 6px; padding: 4px 0; text-align: center; }
+
+  .swatches { display: flex; gap: 9px; flex-wrap: wrap; }
+  .swatch { width: 36px; height: 36px; border: 3px solid var(--navy); border-radius: 8px; cursor: pointer; }
+  .swatch.selected { box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--pink-deep); transform: translateY(-2px); }
+  .chips { display: flex; gap: 7px; flex-wrap: wrap; }
+  .chip { font-size: 13px; padding: 6px 11px; border: 2px solid var(--navy); border-radius: 999px;
+    background: #fff; color: var(--navy); cursor: pointer; }
+  .chip.selected { background: var(--blue); color: #fff; }
+
+  input[type=text] { font-family: var(--pixel); font-size: 16px; color: var(--navy); width: 100%;
+    padding: 9px 12px; border: 3px solid var(--navy); border-radius: 8px; background: #fff;
+    box-shadow: inset 3px 3px 0 #e6e2f8; outline: none; user-select: text; -webkit-user-select: text; }
+
+  .retro-btn { font-weight: 700; font-size: 18px; padding: 12px 26px; border: 3px solid var(--navy);
+    border-radius: 10px; background: #fff; color: var(--navy); box-shadow: 4px 4px 0 var(--navy); cursor: pointer; }
+  .retro-btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--navy); }
+  .retro-btn.pink { background: var(--pink); color: #fff; text-shadow: 2px 2px 0 var(--navy); }
+  .retro-btn.big { font-size: 24px; padding: 14px 54px; }
+  .start-wrap { position: relative; }
+  .cursor { position: absolute; right: -26px; bottom: -30px; line-height: 0; animation: float 1.4s ease-in-out infinite; pointer-events: none; }
+
+  .note { position: absolute; left: -70px; bottom: -36px; width: 168px; transform: rotate(-6deg); z-index: 2; }
+  .note .titlebar { font-size: 12px; padding: 5px 8px; }
+  .note .tb-btns i { width: 16px; height: 16px; font-size: 9px; }
+  .note .win-body { padding: 12px 14px; font-size: 13px; line-height: 1.6; }
+
+  /* ---------- 작업표시줄 ---------- */
+  #taskbar { position: fixed; left: 0; right: 0; bottom: 0; height: 48px; z-index: 3;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 12px;
+    background: #f1edff; border-top: 3px solid var(--navy); font-size: 13px; }
+  #taskbar .l { display: flex; gap: 8px; align-items: center; }
+  .tb-start { font-weight: 700; background: var(--pink); color: #fff; border: 2px solid var(--navy);
+    border-radius: 6px; padding: 4px 10px; text-shadow: 1px 1px 0 var(--navy); }
+  .tb-tab { background: #fff; border: 2px solid var(--navy); border-radius: 6px; padding: 4px 10px; box-shadow: inset 2px 2px 0 #e6e2f8; }
+  #clock { background: #fff; border: 2px solid var(--navy); border-radius: 6px; padding: 4px 10px; }
+
+  /* ---------- 촬영 화면 ---------- */
+  body.shooting #taskbar, body.shooting #deco, body.shooting .icons { display: none; }
+  #shoot { inset: 0; padding: 0; background: #000; z-index: 10; }
   #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-  #counter { position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
-    background: rgba(0,0,0,.55); padding: 10px 28px; border-radius: 999px; font-size: 28px; font-weight: 700; }
-  #countdown { position: absolute; font-size: 260px; font-weight: 800; color: #fff;
-    text-shadow: 0 6px 30px rgba(0,0,0,.5); opacity: 0; }
+  #tint { position: absolute; inset: 0; pointer-events: none; }
+  #counter { position: absolute; top: 24px; left: 50%; transform: translateX(-50%);
+    background: #fff; border: 3px solid var(--navy); border-radius: 999px; box-shadow: 4px 4px 0 var(--navy);
+    padding: 8px 22px; font-size: 20px; font-weight: 700; }
+  #countdown { position: absolute; font-size: 220px; font-weight: 700; color: #fff; opacity: 0;
+    text-shadow: 8px 8px 0 var(--pink-deep), -3px -3px 0 var(--navy), 3px -3px 0 var(--navy), -3px 3px 0 var(--navy); }
   #countdown.show { animation: pop 1s ease-out; }
   @keyframes pop { 0% { opacity: 0; transform: scale(1.6); } 20% { opacity: 1; transform: scale(1); } 100% { opacity: .9; } }
   #flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
   #flash.on { animation: flash .5s ease-out; }
   @keyframes flash { 0% { opacity: 1; } 100% { opacity: 0; } }
-  #thumbs { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; }
-  #thumbs img { width: 120px; height: 90px; object-fit: cover; border-radius: 10px; border: 3px solid #fff; }
+  #thumbs { position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; }
+  #thumbs img { width: 116px; height: 87px; object-fit: cover; border-radius: 8px; border: 3px solid #fff; box-shadow: 4px 4px 0 rgba(0,0,0,.3); }
 
-  /* 결과 화면 */
-  #result { flex-direction: row; gap: 60px; }
-  #resultImg { height: 88vh; max-width: 45vw; object-fit: contain; border-radius: 6px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
-  .side { display: flex; flex-direction: column; gap: 20px; align-items: stretch; }
-  .side .big-btn { padding: 22px 50px; font-size: 28px; }
-  .ghost { background: #333; color: #fff; }
+  /* ---------- 결과 화면 ---------- */
+  .result-wrap { display: flex; gap: 34px; align-items: center; }
+  .result-win .win-body { padding: 14px; }
+  #resultImg { display: block; max-height: calc(100vh - 48px - 110px); max-width: 40vw; width: auto; border-radius: 4px; }
+  .panel { width: 330px; }
+  .panel .win-body { display: flex; flex-direction: column; gap: 14px; }
+  .panel .sec { font-size: 12px; font-weight: 700; color: var(--blue); margin-bottom: -6px; }
+  .panel .retro-btn { width: 100%; }
+  .panel .btns { display: flex; flex-direction: column; gap: 12px; margin-top: 6px; }
 
   @media (orientation: portrait) {
-    #result { flex-direction: column; gap: 24px; }
-    #resultImg { height: 70vh; max-width: 90vw; }
-    .side { flex-direction: row; }
+    .result-wrap { flex-direction: column; gap: 18px; }
+    #resultImg { max-height: 52vh; max-width: 80vw; }
+    .panel { width: min(420px, 90vw); }
+  }
+  @media (max-width: 760px) {
+    .icons, .note { display: none; }
   }
 </style>
 </head>
 <body>
 
+<div id="deco"></div>
+
+<!-- 바탕화면 아이콘 -->
+<div class="icons left">
+  <div class="dicon"><span data-pix="camera" data-px="4"></span><label>cheese.exe</label></div>
+  <div class="dicon"><span data-pix="disk" data-px="4"></span><label>4cut.zip</label></div>
+</div>
+<div class="icons right">
+  <div class="dicon"><span data-pix="heartIcon" data-px="5"></span><label>love.jpg</label></div>
+  <div class="dicon"><span data-pix="folder" data-px="4"></span><label>memories</label></div>
+</div>
+
 <!-- 1. 시작 화면 -->
 <div id="start" class="screen active">
-  <h1>📸 네컷 포토부스</h1>
-  <p class="sub">버튼을 누르면 3초 간격으로 4장을 찍어요</p>
-  <p class="label">프레임 색상</p>
-  <div class="frames" id="frames"></div>
-  <p class="label">하단 문구</p>
-  <input id="titleInput" type="text" value="PHOTO BOOTH" maxlength="20">
-  <button class="big-btn" id="startBtn">촬영 시작</button>
+  <div class="stage">
+    <div class="win main-win">
+      <div class="titlebar"><span class="t"><span data-pix="heart" data-px="2" data-color="#ffffff"></span>photobooth.exe</span>
+        <div class="tb-btns"><i>_</i><i>□</i><i>×</i></div></div>
+      <div class="win-body">
+        <p class="tag">✦ 4-CUT PHOTO ✦</p>
+        <h1 class="logo">Say Cheese!</h1>
+        <p class="hint">3초 카운트다운 · 네 컷 촬영</p>
+        <div class="opts">
+          <div class="opt"><span class="opt-label">FRAME</span><div class="swatches" data-frames></div></div>
+          <div class="opt"><span class="opt-label">FILTER</span><div class="chips" data-filters></div></div>
+          <div class="opt"><span class="opt-label">TEXT</span><input id="titleInput" type="text" value="SAY CHEESE" maxlength="20"></div>
+        </div>
+        <div class="start-wrap">
+          <button class="retro-btn pink big" id="startBtn">▶ START</button>
+          <span class="cursor" data-pix="cursor" data-px="3"></span>
+        </div>
+      </div>
+    </div>
+    <div class="win note">
+      <div class="titlebar pink"><span class="t">tip.txt</span><div class="tb-btns"><i>×</i></div></div>
+      <div class="win-body">카메라를 보고<br>활짝 웃어요 :)</div>
+    </div>
+  </div>
 </div>
 
 <!-- 2. 촬영 화면 -->
 <div id="shoot" class="screen">
   <video id="video" autoplay playsinline muted></video>
-  <div id="counter">1 / 4</div>
+  <div id="tint"></div>
+  <div id="counter">CUT 1 / 4</div>
   <div id="countdown"></div>
   <div id="flash"></div>
   <div id="thumbs"></div>
@@ -78,171 +215,412 @@
 
 <!-- 3. 결과 화면 -->
 <div id="result" class="screen">
-  <img id="resultImg" alt="완성된 네컷 사진">
-  <div class="side">
-    <button class="big-btn" id="saveBtn">저장하기</button>
-    <button class="big-btn ghost" id="retakeBtn">다시 찍기</button>
-    <button class="big-btn ghost" id="homeBtn">처음으로</button>
+  <div class="result-wrap">
+    <div class="win result-win">
+      <div class="titlebar"><span class="t"><span data-pix="heart" data-px="2" data-color="#ffffff"></span>result.jpg</span>
+        <div class="tb-btns"><i>_</i><i>□</i><i>×</i></div></div>
+      <div class="win-body"><img id="resultImg" alt="완성된 네컷 사진"></div>
+    </div>
+    <div class="win panel">
+      <div class="titlebar pink"><span class="t">edit.exe</span><div class="tb-btns"><i>×</i></div></div>
+      <div class="win-body">
+        <p class="sec">FRAME</p><div class="swatches" data-frames></div>
+        <p class="sec">FILTER</p><div class="chips" data-filters></div>
+        <div class="btns">
+          <button class="retro-btn pink" id="saveBtn">♥ 저장하기</button>
+          <button class="retro-btn" id="retakeBtn">다시 찍기</button>
+          <button class="retro-btn" id="homeBtn">처음으로</button>
+        </div>
+      </div>
+    </div>
   </div>
+</div>
+
+<!-- 작업표시줄 -->
+<div id="taskbar">
+  <div class="l"><span class="tb-start">♥ start</span><span class="tb-tab">photobooth.exe</span></div>
+  <span id="clock"></span>
 </div>
 
 <canvas id="out" style="display:none"></canvas>
 
 <script>
-// ===== 설정 =====
-const FRAMES = {
-  white: { bg: '#ffffff', text: '#222222' },
-  black: { bg: '#111111', text: '#ffffff' },
-  pink:  { bg: '#ffd6e0', text: '#7a2944' },
-  sky:   { bg: '#d6ecff', text: '#1f4b7a' },
-  mint:  { bg: '#d4f5e6', text: '#1d5c43' },
-};
+// ===================== 설정 =====================
 const SHOT_COUNT = 4;     // 찍을 장수
 const COUNTDOWN_SEC = 3;  // 카운트다운 초
+const SOUND_ON = true;    // 소리 끄려면 false
 
-// ===== 요소 =====
+const FRAMES = {
+  white: { bg: '#ffffff', text: '#222222', swatch: '#ffffff' },
+  black: { bg: '#111111', text: '#ffffff', swatch: '#111111' },
+  pink:  { bg: '#ffd6e8', text: '#c2457f', swatch: '#ffd6e8' },
+  sky:   { bg: '#d6e6ff', text: '#3a5cb0', swatch: '#d6e6ff' },
+  mint:  { bg: '#d4f5e6', text: '#1d5c43', swatch: '#d4f5e6' },
+  retro: { retro: true, text: '#2f3a7a', swatch: 'linear-gradient(180deg,#9fbfff,#ffc7e2)' },
+};
+
+// css: 촬영 중 미리보기, opts: 결과 사진에 실제로 적용되는 값
+const FILTERS = {
+  none: { name: '원본',  css: 'none', opts: null },
+  bw:   { name: '흑백',  css: 'grayscale(1) contrast(1.12) brightness(1.03)',
+          opts: { gray: true, contrast: 1.12, bright: 1.03 } },
+  soft: { name: '뽀샤시', css: 'brightness(1.12) contrast(0.9) saturate(1.08)',
+          opts: { bright: 1.1, contrast: 0.9, sat: 1.08, add: [6, 4, 8], glow: 0.28 } },
+  warm: { name: '웜톤',  css: 'sepia(0.15) saturate(1.15) brightness(1.04)', tint: 'rgba(255,170,90,.10)',
+          opts: { mul: [1.07, 1, 0.88], add: [10, 4, 0], sat: 1.1 } },
+  cool: { name: '쿨톤',  css: 'saturate(0.9) brightness(1.04)', tint: 'rgba(90,150,255,.14)',
+          opts: { mul: [0.92, 1, 1.08], add: [0, 4, 12], bright: 1.03, sat: 0.92 } },
+  film: { name: '필름',  css: 'contrast(0.88) saturate(0.78) sepia(0.12) brightness(1.05)',
+          opts: { contrast: 0.88, sat: 0.78, lift: 22, mul: [1.04, 1, 0.94], noise: 18 } },
+};
+
+// ===================== 픽셀 그림 =====================
+const PAL = { X: '#2f3a7a', o: '#ffffff', p: '#ff8cc0', b: '#7aa2f5', y: '#ffe27a', l: '#cfe0ff' };
+const PIX = {
+  heart:   ['.XX.XX.', 'XXXXXXX', 'XXXXXXX', '.XXXXX.', '..XXX..', '...X...'],
+  sparkle: ['...X...', '...X...', '..XXX..', 'XXXXXXX', '..XXX..', '...X...', '...X...'],
+  diamond: ['..X..', '.XXX.', 'XXXXX', '.XXX.', '..X..'],
+  cloud:   ['.....XXXX.....', '...XXXXXXXX.XX', '..XXXXXXXXXXXX', 'XXXXXXXXXXXXXX', '.XXXXXXXXXXXX.'],
+  heartIcon: ['.XX...XX.', 'XppX.XppX', 'XpopXpppX', 'XpppppppX', '.XpppppX.', '..XpppX..', '...XpX...', '....X....'],
+  camera:  ['....XXXX....', 'XXXXXooXXXXX', 'XooooooooopX', 'XoooXXXXoooX', 'XooXppppXooX',
+            'XooXpopoXooX', 'XoooXXXXoooX', 'XooooooooooX', 'XXXXXXXXXXXX'],
+  disk:    ['XXXXXXXXXX.', 'XbbXooXbbbX', 'XbbXooXbbbX', 'XbbXXXXbbbX', 'XbbbbbbbbbX',
+            'XbXXXXXXXbX', 'XbXoooooXbX', 'XbXopppoXbX', 'XbXoooooXbX', 'XXXXXXXXXXX'],
+  folder:  ['XXXXX.......', 'XyyyyX......', 'XXXXXXXXXXXX', 'XyyyyyyyyyyX', 'XyyyypypyyyX',
+            'XyyyypppyyyX', 'XyyyyypyyyyX', 'XyyyyyyyyyyX', 'XXXXXXXXXXXX'],
+  cursor:  ['X.........', 'XX........', 'XoX.......', 'XooX......', 'XoooX.....', 'XooooX....',
+            'XoooooX...', 'XooooooX..', 'XoooooooX.', 'XooooXXXXX', 'XooXooX...', 'XoX.XooX..',
+            'XX..XooX..', 'X....XooX.', '.....XooX.', '......XX..'],
+};
+
+function pixelSVG(name, px, colorMap = {}) {
+  const rows = PIX[name];
+  const w = Math.max(...rows.map(r => r.length)), h = rows.length;
+  let rects = '';
+  rows.forEach((r, y) => [...r].forEach((c, x) => {
+    if (c === '.') return;
+    rects += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${colorMap[c] || PAL[c]}"/>`;
+  }));
+  return `<svg width="${w * px}" height="${h * px}" viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges">${rects}</svg>`;
+}
+function drawPix(ctx, name, x, y, px, colorMap = {}) {
+  PIX[name].forEach((r, yy) => [...r].forEach((c, xx) => {
+    if (c === '.') return;
+    ctx.fillStyle = colorMap[c] || PAL[c];
+    ctx.fillRect(x + xx * px, y + yy * px, px, px);
+  }));
+}
+
+// 배경에 떠다니는 구름, 반짝이, 하트
+const DECO = [
+  { n: 'cloud',   px: 9, c: '#ffffff', top: '7%',  left: '14%', cls: 'drift' },
+  { n: 'cloud',   px: 7, c: '#ffffff', top: '12%', left: '70%', cls: 'drift slow' },
+  { n: 'cloud',   px: 6, c: '#ffffff', top: '66%', left: '82%', cls: 'drift' },
+  { n: 'cloud',   px: 8, c: '#ffffff', top: '74%', left: '9%',  cls: 'drift slow' },
+  { n: 'sparkle', px: 5, c: '#ff8cc0', top: '24%', left: '24%', cls: 'twinkle' },
+  { n: 'sparkle', px: 4, c: '#ffffff', top: '58%', left: '22%', cls: 'twinkle d2' },
+  { n: 'sparkle', px: 6, c: '#ffe27a', top: '30%', left: '80%', cls: 'twinkle d1' },
+  { n: 'heart',   px: 5, c: '#ff8cc0', top: '50%', left: '88%', cls: 'float' },
+  { n: 'heart',   px: 4, c: '#ffffff', top: '42%', left: '12%', cls: 'float d2' },
+  { n: 'diamond', px: 4, c: '#ffffff', top: '84%', left: '62%', cls: 'twinkle d1' },
+  { n: 'diamond', px: 3, c: '#ff8cc0', top: '18%', left: '50%', cls: 'twinkle d2' },
+];
+
+// ===================== 요소 =====================
 const $ = id => document.getElementById(id);
-const video = $('video'), cd = $('countdown'), counter = $('counter'),
-      thumbs = $('thumbs'), out = $('out'), resultImg = $('resultImg'), titleInput = $('titleInput');
+const video = $('video'), cd = $('countdown'), counter = $('counter'), thumbs = $('thumbs'),
+      out = $('out'), resultImg = $('resultImg'), titleInput = $('titleInput'), tint = $('tint');
 
-let frame = 'white', stream = null, shots = [], busy = false;
+let frame = 'retro', filter = 'soft', stream = null, shots = [], busy = false, screenNow = 'start';
 
-// 프레임 색상 버튼 만들기
-Object.entries(FRAMES).forEach(([name, f]) => {
-  const b = document.createElement('button');
-  b.className = 'frame-btn' + (name === frame ? ' selected' : '');
-  b.style.background = f.bg;
-  b.onclick = () => {
-    frame = name;
-    document.querySelectorAll('.frame-btn').forEach(x => x.classList.remove('selected'));
-    b.classList.add('selected');
-  };
-  $('frames').appendChild(b);
-});
+function init() {
+  DECO.forEach(d => {
+    const s = document.createElement('span');
+    s.className = d.cls; s.style.top = d.top; s.style.left = d.left;
+    s.innerHTML = pixelSVG(d.n, d.px, { X: d.c });
+    $('deco').appendChild(s);
+  });
+  document.querySelectorAll('[data-pix]').forEach(el => {
+    const map = el.dataset.color ? { X: el.dataset.color } : {};
+    el.innerHTML = pixelSVG(el.dataset.pix, +el.dataset.px || 4, map);
+  });
+  buildOptions();
+  const tick = () => $('clock').textContent =
+    new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
+  tick(); setInterval(tick, 20000);
+}
+
+function buildOptions() {
+  document.querySelectorAll('[data-frames]').forEach(box => {
+    Object.entries(FRAMES).forEach(([k, f]) => {
+      const b = document.createElement('button');
+      b.className = 'swatch'; b.dataset.frame = k; b.style.background = f.swatch;
+      b.onclick = () => { frame = k; syncSelected(); if (screenNow === 'result') compose(); };
+      box.appendChild(b);
+    });
+  });
+  document.querySelectorAll('[data-filters]').forEach(box => {
+    Object.entries(FILTERS).forEach(([k, f]) => {
+      const b = document.createElement('button');
+      b.className = 'chip'; b.dataset.filter = k; b.textContent = f.name;
+      b.onclick = () => { filter = k; syncSelected(); if (screenNow === 'result') compose(); };
+      box.appendChild(b);
+    });
+  });
+  syncSelected();
+}
+function syncSelected() {
+  document.querySelectorAll('.swatch').forEach(b => b.classList.toggle('selected', b.dataset.frame === frame));
+  document.querySelectorAll('.chip').forEach(b => b.classList.toggle('selected', b.dataset.filter === filter));
+}
 
 function show(id) {
+  screenNow = id;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $(id).classList.add('active');
+  document.body.classList.toggle('shooting', id === 'shoot');
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// ===== 카메라 =====
+// ===================== 소리 =====================
+let audioCtx = null;
+function initAudio() {
+  if (!SOUND_ON) return;
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+function beep(freq = 880, dur = 0.12) {
+  if (!audioCtx) return;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain(), t = audioCtx.currentTime;
+  o.type = 'sine'; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.3, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(audioCtx.destination);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+function shutter() {
+  if (!audioCtx) return;
+  const t0 = audioCtx.currentTime;
+  [0, 0.08].forEach((offset, i) => {
+    const len = 0.06;
+    const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * len), audioCtx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let j = 0; j < d.length; j++) d[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / d.length, 3);
+    const src = audioCtx.createBufferSource(); src.buffer = buf;
+    const f = audioCtx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = i ? 2600 : 1800; f.Q.value = 0.8;
+    src.connect(f).connect(audioCtx.destination);
+    src.start(t0 + offset);
+  });
+}
+
+// ===================== 카메라 =====================
 async function startCamera() {
   if (stream) return;
   stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: 'user', width: { ideal: 1920 }, height: { ideal: 1440 } },
-    audio: false,
+    video: { facingMode: 'user', width: { ideal: 1920 }, height: { ideal: 1440 } }, audio: false,
   });
   video.srcObject = stream;
   await video.play();
 }
-
+function applyPreview() {
+  const f = FILTERS[filter];
+  video.style.filter = f.css;
+  tint.style.background = f.tint || 'transparent';
+}
 async function countdown(n) {
   for (let i = n; i > 0; i--) {
     cd.textContent = i;
+    beep(660);
     cd.classList.remove('show'); void cd.offsetWidth; cd.classList.add('show');
     await sleep(1000);
   }
-  cd.classList.remove('show');
-  cd.textContent = '';
+  cd.classList.remove('show'); cd.textContent = '';
 }
-
 function flash() {
   const f = $('flash');
   f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');
 }
-
-// 현재 카메라 화면을 거울처럼 뒤집어서 한 장 캡처
+// 거울처럼 뒤집어서 캡처 (최대 가로 1200px로 줄여서 빠르게)
 function capture() {
+  const scale = Math.min(1, 1200 / video.videoWidth);
   const c = document.createElement('canvas');
-  c.width = video.videoWidth; c.height = video.videoHeight;
+  c.width = Math.round(video.videoWidth * scale); c.height = Math.round(video.videoHeight * scale);
   const ctx = c.getContext('2d');
   ctx.translate(c.width, 0); ctx.scale(-1, 1);
-  ctx.drawImage(video, 0, 0);
+  ctx.drawImage(video, 0, 0, c.width, c.height);
   return c;
 }
 
-// ===== 촬영 진행 =====
 async function runSession() {
   if (busy) return;
   busy = true;
+  initAudio();
   shots = []; thumbs.innerHTML = '';
+  applyPreview();
   show('shoot');
-  try {
-    await startCamera();
-  } catch (e) {
+  try { await startCamera(); }
+  catch (e) {
     alert('카메라를 켤 수 없어요. 카메라 권한을 허용했는지, https 주소로 열었는지 확인해 주세요.');
     show('start'); busy = false; return;
   }
   await sleep(800);
   for (let i = 0; i < SHOT_COUNT; i++) {
-    counter.textContent = `${i + 1} / ${SHOT_COUNT}`;
+    counter.textContent = `CUT ${i + 1} / ${SHOT_COUNT}`;
     await countdown(COUNTDOWN_SEC);
-    flash();
+    flash(); shutter();
     const shot = capture();
     shots.push(shot);
     const t = new Image();
     t.src = shot.toDataURL('image/jpeg', 0.6);
+    t.style.filter = FILTERS[filter].css;
     thumbs.appendChild(t);
     await sleep(800);
   }
-  compose();
+  await compose();
   show('result');
   busy = false;
 }
 
-// ===== 네컷 합성 =====
-// 사진을 칸 크기에 맞게 가운데 기준으로 잘라 넣기
+// ===================== 필터 =====================
+function applyFilter(src, f) {
+  const c = document.createElement('canvas');
+  c.width = src.width; c.height = src.height;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(src, 0, 0);
+  const o = f.opts;
+  if (!o) return c;
+  const img = ctx.getImageData(0, 0, c.width, c.height), d = img.data;
+  const B = o.bright ?? 1, C = o.contrast ?? 1, S = o.gray ? 0 : (o.sat ?? 1);
+  const [mr, mg, mb] = o.mul || [1, 1, 1], [ar, ag, ab] = o.add || [0, 0, 0];
+  const lift = o.lift || 0, noise = o.noise || 0;
+  for (let i = 0; i < d.length; i += 4) {
+    let r = d[i] * B, g = d[i + 1] * B, b = d[i + 2] * B;
+    r = (r - 128) * C + 128; g = (g - 128) * C + 128; b = (b - 128) * C + 128;
+    const l = 0.299 * r + 0.587 * g + 0.114 * b;
+    r = l + (r - l) * S; g = l + (g - l) * S; b = l + (b - l) * S;
+    r = r * mr + ar; g = g * mg + ag; b = b * mb + ab;
+    if (lift) { const k = (255 - lift) / 255; r = lift + r * k; g = lift + g * k; b = lift + b * k; }
+    if (noise) { const n = (Math.random() - 0.5) * noise; r += n; g += n; b += n; }
+    d[i] = r; d[i + 1] = g; d[i + 2] = b;
+  }
+  ctx.putImageData(img, 0, 0);
+  if (o.glow) { // 뽀샤시: 흐린 사본을 밝게 겹치기
+    const s = document.createElement('canvas');
+    s.width = Math.max(1, c.width / 12 | 0); s.height = Math.max(1, c.height / 12 | 0);
+    s.getContext('2d').drawImage(c, 0, 0, s.width, s.height);
+    ctx.save();
+    ctx.globalAlpha = o.glow; ctx.globalCompositeOperation = 'screen';
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(s, 0, 0, c.width, c.height);
+    ctx.restore();
+  }
+  return c;
+}
+
+// ===================== 네컷 합성 =====================
 function drawCover(ctx, img, x, y, w, h) {
   const s = Math.max(w / img.width, h / img.height);
   const sw = w / s, sh = h / s;
   ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, x, y, w, h);
 }
 
-function compose() {
-  const W = 1000, H = 3000;      // 결과 이미지 크기 (세로로 긴 네컷)
-  const M = 50, G = 30, B = 300; // 바깥 여백, 사진 사이 간격, 하단 문구 영역
-  const sw = W - 2 * M;
-  const sh = (H - M - B - (SHOT_COUNT - 1) * G) / SHOT_COUNT;
+function drawRetroWindow(ctx, img, x, y, w, h, i) {
+  const navy = '#2f3a7a', bw = 6, bar = 58;
+  ctx.fillStyle = 'rgba(47,58,122,.28)'; ctx.fillRect(x + 10, y + 10, w, h);   // 그림자
+  ctx.fillStyle = navy; ctx.fillRect(x, y, w, h);                               // 테두리
+  ctx.fillStyle = i % 2 ? '#ff8cc0' : '#6f9cf2';
+  ctx.fillRect(x + bw, y + bw, w - 2 * bw, bar - bw);                           // 제목줄
+  drawPix(ctx, 'heart', x + 22, y + bw + 13, 4, { X: '#ffffff' });
+  ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.font = 'bold 28px Galmuri11, monospace';
+  ctx.fillText(`cut_0${i + 1}.jpg`, x + 62, y + bw + (bar - bw) / 2 + 1);
+  const bs = 32;
+  ['_', '□', '×'].forEach((s, k) => {
+    const bx = x + w - bw - 14 - (3 - k) * (bs + 8) + 8, by = y + bw + (bar - bw - bs) / 2;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(bx, by, bs, bs);
+    ctx.strokeStyle = navy; ctx.lineWidth = 3; ctx.strokeRect(bx + 1.5, by + 1.5, bs - 3, bs - 3);
+    ctx.fillStyle = navy; ctx.textAlign = 'center'; ctx.font = 'bold 20px Galmuri11, monospace';
+    ctx.fillText(s, bx + bs / 2, by + bs / 2 + 1);
+  });
+  ctx.textBaseline = 'alphabetic';
+  drawCover(ctx, img, x + bw, y + bar + bw, w - 2 * bw, h - bar - 2 * bw);
+}
+
+let composeJob = Promise.resolve();
+function compose() { composeJob = composeJob.then(doCompose).catch(console.error); return composeJob; }
+
+async function doCompose() {
+  if (!shots.length) return;
+  try { await Promise.all([document.fonts.load('bold 64px Galmuri11'), document.fonts.load('36px Galmuri11')]); } catch (e) {}
+  const W = 1000, H = 3000, M = 50, G = 30, B = 300;
+  const sw = W - 2 * M, sh = (H - M - B - (SHOT_COUNT - 1) * G) / SHOT_COUNT;
   out.width = W; out.height = H;
   const ctx = out.getContext('2d');
-  const f = FRAMES[frame];
+  const fr = FRAMES[frame];
 
-  ctx.fillStyle = f.bg;
-  ctx.fillRect(0, 0, W, H);
-  shots.forEach((s, i) => drawCover(ctx, s, M, M + i * (sh + G), sw, sh));
+  if (fr.retro) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#a9c6ff'); g.addColorStop(0.5, '#d3e1ff'); g.addColorStop(1, '#ffd6ea');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,255,255,.35)';
+    for (let x = 0; x < W; x += 50) ctx.fillRect(x, 0, 2, H);
+    for (let y = 0; y < H; y += 50) ctx.fillRect(0, y, W, 2);
+  } else {
+    ctx.fillStyle = fr.bg; ctx.fillRect(0, 0, W, H);
+  }
 
-  ctx.fillStyle = f.text;
-  ctx.textAlign = 'center';
-  ctx.font = 'bold 72px -apple-system, "Apple SD Gothic Neo", sans-serif';
-  ctx.fillText(titleInput.value || 'PHOTO BOOTH', W / 2, H - B + 140);
+  const f = FILTERS[filter];
+  shots.forEach((s, i) => {
+    const img = applyFilter(s, f), y = M + i * (sh + G);
+    if (fr.retro) drawRetroWindow(ctx, img, M, y, sw, sh, i);
+    else drawCover(ctx, img, M, y, sw, sh);
+  });
+
+  const title = titleInput.value || 'SAY CHEESE';
   const d = new Date();
   const date = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
-  ctx.font = '40px -apple-system, sans-serif';
-  ctx.fillText(date, W / 2, H - B + 210);
-
+  ctx.fillStyle = fr.text; ctx.textAlign = 'center';
+  if (fr.retro) {
+    ctx.font = 'bold 64px Galmuri11, monospace';
+    const ty = H - B + 150;
+    ctx.fillText(title, W / 2, ty);
+    const tw = ctx.measureText(title).width;
+    drawPix(ctx, 'heart', W / 2 - tw / 2 - 80, ty - 44, 7, { X: '#ff6fae' });
+    drawPix(ctx, 'heart', W / 2 + tw / 2 + 31, ty - 44, 7, { X: '#ff6fae' });
+    ctx.fillStyle = fr.text; ctx.font = '36px Galmuri11, monospace';
+    ctx.fillText(date, W / 2, ty + 70);
+    drawPix(ctx, 'sparkle', 70, H - 120, 7, { X: '#ffffff' });
+    drawPix(ctx, 'sparkle', W - 130, H - 250, 6, { X: '#ffe27a' });
+    drawPix(ctx, 'diamond', W - 110, H - 100, 6, { X: '#ffffff' });
+  } else {
+    ctx.font = 'bold 72px -apple-system, "Apple SD Gothic Neo", sans-serif';
+    ctx.fillText(title, W / 2, H - B + 140);
+    ctx.font = '40px -apple-system, sans-serif';
+    ctx.fillText(date, W / 2, H - B + 210);
+  }
   resultImg.src = out.toDataURL('image/jpeg', 0.92);
 }
 
-// ===== 저장 =====
+// ===================== 저장 =====================
 async function save() {
+  await composeJob;
   const blob = await new Promise(r => out.toBlob(r, 'image/jpeg', 0.92));
   const file = new File([blob], `photobooth_${Date.now()}.jpg`, { type: 'image/jpeg' });
-  // 아이패드에서는 공유 시트가 열려서 "이미지 저장"을 누르면 사진 앱에 저장돼요
+  // 아이패드: 공유 시트에서 "이미지 저장"을 누르면 사진 앱에 저장돼요
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try { await navigator.share({ files: [file] }); return; }
     catch (e) { if (e.name === 'AbortError') return; }
   }
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = file.name;
-  a.click();
+  a.href = URL.createObjectURL(blob); a.download = file.name; a.click();
 }
 
 $('startBtn').onclick = runSession;
 $('retakeBtn').onclick = runSession;
 $('homeBtn').onclick = () => show('start');
 $('saveBtn').onclick = save;
+init();
 </script>
 </body>
 </html>
