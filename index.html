@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>네컷 포토부스</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: #141414; color: #fff;
+    font-family: -apple-system, "Apple SD Gothic Neo", sans-serif; overflow: hidden; user-select: none; -webkit-user-select: none; }
+  .screen { display: none; position: fixed; inset: 0; align-items: center; justify-content: center; flex-direction: column; gap: 28px; padding: 24px; }
+  .screen.active { display: flex; }
+
+  /* 시작 화면 */
+  h1 { font-size: 64px; letter-spacing: -1px; }
+  .sub { color: #aaa; font-size: 22px; }
+  .label { font-size: 20px; color: #ccc; margin-bottom: -12px; }
+  .frames { display: flex; gap: 18px; }
+  .frame-btn { width: 72px; height: 72px; border-radius: 50%; border: 4px solid transparent; cursor: pointer; }
+  .frame-btn.selected { border-color: #ffcc00; transform: scale(1.1); }
+  input[type=text] { font-size: 24px; padding: 14px 20px; border-radius: 14px; border: none; width: 380px; text-align: center; }
+  .big-btn { font-size: 34px; font-weight: 700; padding: 26px 80px; border-radius: 999px; border: none;
+    background: #ffcc00; color: #141414; cursor: pointer; }
+  .big-btn:active { transform: scale(0.96); }
+
+  /* 촬영 화면 */
+  #shoot { padding: 0; gap: 0; }
+  #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+  #counter { position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,.55); padding: 10px 28px; border-radius: 999px; font-size: 28px; font-weight: 700; }
+  #countdown { position: absolute; font-size: 260px; font-weight: 800; color: #fff;
+    text-shadow: 0 6px 30px rgba(0,0,0,.5); opacity: 0; }
+  #countdown.show { animation: pop 1s ease-out; }
+  @keyframes pop { 0% { opacity: 0; transform: scale(1.6); } 20% { opacity: 1; transform: scale(1); } 100% { opacity: .9; } }
+  #flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+  #flash.on { animation: flash .5s ease-out; }
+  @keyframes flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+  #thumbs { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; }
+  #thumbs img { width: 120px; height: 90px; object-fit: cover; border-radius: 10px; border: 3px solid #fff; }
+
+  /* 결과 화면 */
+  #result { flex-direction: row; gap: 60px; }
+  #resultImg { height: 88vh; max-width: 45vw; object-fit: contain; border-radius: 6px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+  .side { display: flex; flex-direction: column; gap: 20px; align-items: stretch; }
+  .side .big-btn { padding: 22px 50px; font-size: 28px; }
+  .ghost { background: #333; color: #fff; }
+
+  @media (orientation: portrait) {
+    #result { flex-direction: column; gap: 24px; }
+    #resultImg { height: 70vh; max-width: 90vw; }
+    .side { flex-direction: row; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 1. 시작 화면 -->
+<div id="start" class="screen active">
+  <h1>📸 네컷 포토부스</h1>
+  <p class="sub">버튼을 누르면 3초 간격으로 4장을 찍어요</p>
+  <p class="label">프레임 색상</p>
+  <div class="frames" id="frames"></div>
+  <p class="label">하단 문구</p>
+  <input id="titleInput" type="text" value="PHOTO BOOTH" maxlength="20">
+  <button class="big-btn" id="startBtn">촬영 시작</button>
+</div>
+
+<!-- 2. 촬영 화면 -->
+<div id="shoot" class="screen">
+  <video id="video" autoplay playsinline muted></video>
+  <div id="counter">1 / 4</div>
+  <div id="countdown"></div>
+  <div id="flash"></div>
+  <div id="thumbs"></div>
+</div>
+
+<!-- 3. 결과 화면 -->
+<div id="result" class="screen">
+  <img id="resultImg" alt="완성된 네컷 사진">
+  <div class="side">
+    <button class="big-btn" id="saveBtn">저장하기</button>
+    <button class="big-btn ghost" id="retakeBtn">다시 찍기</button>
+    <button class="big-btn ghost" id="homeBtn">처음으로</button>
+  </div>
+</div>
+
+<canvas id="out" style="display:none"></canvas>
+
+<script>
+// ===== 설정 =====
+const FRAMES = {
+  white: { bg: '#ffffff', text: '#222222' },
+  black: { bg: '#111111', text: '#ffffff' },
+  pink:  { bg: '#ffd6e0', text: '#7a2944' },
+  sky:   { bg: '#d6ecff', text: '#1f4b7a' },
+  mint:  { bg: '#d4f5e6', text: '#1d5c43' },
+};
+const SHOT_COUNT = 4;     // 찍을 장수
+const COUNTDOWN_SEC = 3;  // 카운트다운 초
+
+// ===== 요소 =====
+const $ = id => document.getElementById(id);
+const video = $('video'), cd = $('countdown'), counter = $('counter'),
+      thumbs = $('thumbs'), out = $('out'), resultImg = $('resultImg'), titleInput = $('titleInput');
+
+let frame = 'white', stream = null, shots = [], busy = false;
+
+// 프레임 색상 버튼 만들기
+Object.entries(FRAMES).forEach(([name, f]) => {
+  const b = document.createElement('button');
+  b.className = 'frame-btn' + (name === frame ? ' selected' : '');
+  b.style.background = f.bg;
+  b.onclick = () => {
+    frame = name;
+    document.querySelectorAll('.frame-btn').forEach(x => x.classList.remove('selected'));
+    b.classList.add('selected');
+  };
+  $('frames').appendChild(b);
+});
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// ===== 카메라 =====
+async function startCamera() {
+  if (stream) return;
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: 'user', width: { ideal: 1920 }, height: { ideal: 1440 } },
+    audio: false,
+  });
+  video.srcObject = stream;
+  await video.play();
+}
+
+async function countdown(n) {
+  for (let i = n; i > 0; i--) {
+    cd.textContent = i;
+    cd.classList.remove('show'); void cd.offsetWidth; cd.classList.add('show');
+    await sleep(1000);
+  }
+  cd.classList.remove('show');
+  cd.textContent = '';
+}
+
+function flash() {
+  const f = $('flash');
+  f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');
+}
+
+// 현재 카메라 화면을 거울처럼 뒤집어서 한 장 캡처
+function capture() {
+  const c = document.createElement('canvas');
+  c.width = video.videoWidth; c.height = video.videoHeight;
+  const ctx = c.getContext('2d');
+  ctx.translate(c.width, 0); ctx.scale(-1, 1);
+  ctx.drawImage(video, 0, 0);
+  return c;
+}
+
+// ===== 촬영 진행 =====
+async function runSession() {
+  if (busy) return;
+  busy = true;
+  shots = []; thumbs.innerHTML = '';
+  show('shoot');
+  try {
+    await startCamera();
+  } catch (e) {
+    alert('카메라를 켤 수 없어요. 카메라 권한을 허용했는지, https 주소로 열었는지 확인해 주세요.');
+    show('start'); busy = false; return;
+  }
+  await sleep(800);
+  for (let i = 0; i < SHOT_COUNT; i++) {
+    counter.textContent = `${i + 1} / ${SHOT_COUNT}`;
+    await countdown(COUNTDOWN_SEC);
+    flash();
+    const shot = capture();
+    shots.push(shot);
+    const t = new Image();
+    t.src = shot.toDataURL('image/jpeg', 0.6);
+    thumbs.appendChild(t);
+    await sleep(800);
+  }
+  compose();
+  show('result');
+  busy = false;
+}
+
+// ===== 네컷 합성 =====
+// 사진을 칸 크기에 맞게 가운데 기준으로 잘라 넣기
+function drawCover(ctx, img, x, y, w, h) {
+  const s = Math.max(w / img.width, h / img.height);
+  const sw = w / s, sh = h / s;
+  ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, x, y, w, h);
+}
+
+function compose() {
+  const W = 1000, H = 3000;      // 결과 이미지 크기 (세로로 긴 네컷)
+  const M = 50, G = 30, B = 300; // 바깥 여백, 사진 사이 간격, 하단 문구 영역
+  const sw = W - 2 * M;
+  const sh = (H - M - B - (SHOT_COUNT - 1) * G) / SHOT_COUNT;
+  out.width = W; out.height = H;
+  const ctx = out.getContext('2d');
+  const f = FRAMES[frame];
+
+  ctx.fillStyle = f.bg;
+  ctx.fillRect(0, 0, W, H);
+  shots.forEach((s, i) => drawCover(ctx, s, M, M + i * (sh + G), sw, sh));
+
+  ctx.fillStyle = f.text;
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 72px -apple-system, "Apple SD Gothic Neo", sans-serif';
+  ctx.fillText(titleInput.value || 'PHOTO BOOTH', W / 2, H - B + 140);
+  const d = new Date();
+  const date = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+  ctx.font = '40px -apple-system, sans-serif';
+  ctx.fillText(date, W / 2, H - B + 210);
+
+  resultImg.src = out.toDataURL('image/jpeg', 0.92);
+}
+
+// ===== 저장 =====
+async function save() {
+  const blob = await new Promise(r => out.toBlob(r, 'image/jpeg', 0.92));
+  const file = new File([blob], `photobooth_${Date.now()}.jpg`, { type: 'image/jpeg' });
+  // 아이패드에서는 공유 시트가 열려서 "이미지 저장"을 누르면 사진 앱에 저장돼요
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file] }); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = file.name;
+  a.click();
+}
+
+$('startBtn').onclick = runSession;
+$('retakeBtn').onclick = runSession;
+$('homeBtn').onclick = () => show('start');
+$('saveBtn').onclick = save;
+</script>
+</body>
+</html>
